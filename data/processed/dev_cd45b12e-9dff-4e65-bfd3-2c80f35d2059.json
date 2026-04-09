@@ -1,0 +1,19 @@
+{
+  "device_id": "dev_cd45b12e-9dff-4e65-bfd3-2c80f35d2059",
+  "timestamp": "2026-04-07T14:49:44.225660",
+  "data": {
+    "components": [],
+    "capabilities": [
+      {
+        "battery": "Not specified",
+        "camera": "Not specified",
+        "display": "Not specified",
+        "processor": "Not specified",
+        "memory": "Not specified",
+        "storage": "Not specified",
+        "connectivity": "Not specified",
+        "sensors": "Not specified"
+      }
+    ]
+  }
+}
