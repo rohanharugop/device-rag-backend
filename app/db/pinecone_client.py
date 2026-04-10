@@ -8,25 +8,33 @@ class PineconeClient:
         api_key = os.getenv("PINECONE_API_KEY")
 
         if not api_key:
-            raise ValueError("PINECONE_API_KEY not set")
+            raise Exception("❌ PINECONE_API_KEY not set")
 
-        self.pc = Pinecone(api_key=api_key)
+        try:
+            self.pc = Pinecone(api_key=api_key)
+            self.index_name = "device-rag"
+            self.index = self.pc.Index(self.index_name)
 
-        # ✅ MATCH YOUR EXISTING INDEX
-        self.index_name = "device-rag"
+            print("✅ Pinecone client initialized")
 
-        # ✅ DO NOT CREATE NEW INDEX
-        self.index = self.pc.Index(self.index_name)
+        except Exception as e:
+            raise Exception(f"❌ Pinecone init failed: {str(e)}")
 
-    def upsert(self, vectors):
-        self.index.upsert(vectors=vectors)
+    def upsert(self, vectors, namespace):
+        self.index.upsert(
+            vectors=vectors,
+            namespace=namespace
+        )
 
-    def query(self, vector, top_k=5):
+    def query(self, vector, namespace, top_k=1):
         return self.index.query(
             vector=vector,
             top_k=top_k,
+            namespace=namespace,
             include_metadata=True
         )
 
 
-pinecone_client = PineconeClient()
+# ✅ LAZY FACTORY (CRITICAL FIX)
+def get_pinecone_client():
+    return PineconeClient()

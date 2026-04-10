@@ -1,18 +1,18 @@
-# from dotenv import load_dotenv
-# load_dotenv()   # ✅ LOAD FIRST (TOP OF FILE)
-
-# from fastapi import FastAPI
-# from app.api.routes.device import router as device_router
-
-# app = FastAPI()
-
-# app.include_router(device_router)
-
-
-
-
+from dotenv import load_dotenv
+load_dotenv()
 
 from fastapi import FastAPI
-from app.controllers.device_controller import DeviceController
+from app.api.routes.device import router as device_router
 
-app = FastAPI()
+app = FastAPI(
+    title="Device RAG API",
+    version="1.0.0"
+)
+
+# ✅ THIS LINE WAS MISSING
+app.include_router(device_router)
+
+
+@app.get("/")
+def health_check():
+    return {"status": "running"}

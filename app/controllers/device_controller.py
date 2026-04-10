@@ -148,8 +148,6 @@ class DeviceController:
         # -------------------------------
         # FORMAT (🔥 CRITICAL STEP)
         # -------------------------------
-        from app.services.formatter_service import FormatterService
-
         formatter = FormatterService()
         components, capabilities = formatter.format(structured)
 

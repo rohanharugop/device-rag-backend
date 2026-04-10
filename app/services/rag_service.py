@@ -162,7 +162,7 @@ import os
 import re
 import json
 from openai import OpenAI
-from app.db.pinecone_client import pinecone_client
+from app.db.pinecone_client import get_pinecone_client
 
 
 class RAGService:
@@ -183,6 +183,7 @@ class RAGService:
     # CACHE CHECK
     # -------------------------------
     def exists(self, device_name):
+        pinecone_client = get_pinecone_client()
         namespace = self.get_namespace(device_name)
 
         stats = pinecone_client.index.describe_index_stats()
@@ -207,6 +208,7 @@ class RAGService:
     # STORE (UPDATED FOR FINAL FORMAT)
     # -------------------------------
     def store(self, device_name, formatted_data):
+        pinecone_client = get_pinecone_client()
 
         namespace = self.get_namespace(device_name)
 
@@ -251,6 +253,7 @@ class RAGService:
     # QUERY (UPDATED CLEAN RETURN)
     # -------------------------------
     def query(self, device_name):
+        pinecone_client = get_pinecone_client()
 
         namespace = self.get_namespace(device_name)
 
