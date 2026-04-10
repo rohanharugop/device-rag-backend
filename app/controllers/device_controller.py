@@ -6,9 +6,8 @@ from app.core.session_manager import session_manager
 from app.services.search_service import SearchService
 from app.services.scraper_service import ScraperService
 from app.services.extractor_service import ExtractorService
-from app.services.rag_service import rag_service
+from app.services.rag_service import RAGService
 from app.services.generator_service import GeneratorService
-from app.services.rag_service import rag_service
 from app.services.storage_service import StorageService
 from app.services.formatter_service import FormatterService
 import traceback
@@ -78,7 +77,7 @@ class DeviceController:
         scraper_service = ScraperService()
         extractor_service = ExtractorService()
         formatter = FormatterService()
-
+        rag_service = RAGService()
         print("\n🚀 DEVICE SPECS PIPELINE\n")
 
         if not session_manager.exists(device_id):
@@ -191,6 +190,7 @@ class DeviceController:
             
     @staticmethod
     def save_device(device_id: str, components, capabilities):
+        rag_service = RAGService()
 
         # ✅ Validate session
         if not session_manager.exists(device_id):
@@ -220,6 +220,7 @@ class DeviceController:
     @staticmethod
     def generate_ideas(device_id: str):
         generator_service = GeneratorService()
+        rag_service = RAGService()
 
         # ✅ Validate session
         if not session_manager.exists(device_id):

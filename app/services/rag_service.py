@@ -324,4 +324,3 @@ class RAGService:
 # -------------------------------
 # SINGLE INSTANCE
 # -------------------------------
-rag_service = RAGService()
