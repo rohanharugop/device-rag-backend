@@ -13,9 +13,6 @@
 
 
 from fastapi import FastAPI
+from app.controllers.device_controller import DeviceController
 
 app = FastAPI()
-
-@app.get("/")
-def root():
-    return {"status": "running"}
