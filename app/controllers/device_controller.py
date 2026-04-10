@@ -12,14 +12,14 @@ from app.services.rag_service import rag_service
 from app.services.storage_service import StorageService
 from app.services.formatter_service import FormatterService
 import traceback
-storage_service = StorageService()
-generator_service = GeneratorService()
 
-vision_service = VisionService()
-search_service = SearchService()
-scraper_service = ScraperService()
-extractor_service = ExtractorService()
-formatter = FormatterService()  
+
+
+
+
+
+
+  
 
 
 def clean_input(value):
@@ -29,6 +29,7 @@ class DeviceController:
 
     @staticmethod
     async def detect_device(file_bytes, brand, model, condition, additional_info):
+        vision_service = VisionService()
 
         result = vision_service.detect(file_bytes)
 
@@ -74,6 +75,9 @@ class DeviceController:
         }
     @staticmethod
     def device_specs(device_id: str, device_name: str):
+        scraper_service = ScraperService()
+        extractor_service = ExtractorService()
+        formatter = FormatterService()
 
         print("\n🚀 DEVICE SPECS PIPELINE\n")
 
@@ -100,6 +104,7 @@ class DeviceController:
         # -------------------------------
         # SEARCH
         # -------------------------------
+        search_service = SearchService()
         urls = search_service.run(device_name)
         print("🔍 URL PREVIEW:", urls[:2])
 
@@ -214,6 +219,7 @@ class DeviceController:
         
     @staticmethod
     def generate_ideas(device_id: str):
+        generator_service = GeneratorService()
 
         # ✅ Validate session
         if not session_manager.exists(device_id):
