@@ -15,7 +15,7 @@ app = FastAPI(
 )
 
 origins = [
-    "http://localhost:3000",
+    "https://device-repurposing-assistant.vercel.app",
     "http://127.0.0.1:3000",
 ]
 
