@@ -1,6 +1,9 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
+print("OPENAI KEY:", os.getenv("OPENAI_API_KEY"))
+
 from fastapi import FastAPI
 from app.api.routes.device import router as device_router
 
