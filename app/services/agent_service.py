@@ -681,29 +681,40 @@ Return ONLY the JSON array. Nothing else."""
 
 
 def _build_mermaid(labels: list) -> str:
-    """
-    Builds a Mermaid flowchart matching the exact format expected by the frontend.
-    Uses simple lettered nodes (A, B, C...) with bracket labels, no quotes.
-    """
     if not labels:
-        return "flowchart LR\n    A[Start] --> B[Complete]"
+        return "flowchart LR\n    A[Start] --> B[Finish]"
 
-    # Map index to letter: 0→A, 1→B, 2→C, etc.
     def idx_to_letter(i):
-        return chr(65 + i)  # A=65 in ASCII
+        return chr(65 + i)
 
-    lines = ["flowchart LR"]
+    def wrap_label(text: str, max_words: int = 3) -> str:
+        words = text.strip().split()
+        lines = []
+        for i in range(0, len(words), max_words):
+            lines.append(" ".join(words[i:i + max_words]))
+        return "<br>".join(lines)
+
+    nodes = []
 
     for i, label in enumerate(labels):
-        current = idx_to_letter(i)
-        next_node = idx_to_letter(i + 1)
-        # Clean label — no quotes, no special chars that cause backslash escaping
-        clean_label = re.sub(r'["\[\]{}|\\]', '', label.strip())
-        if i < len(labels) - 1:
-            lines.append(f"    {current}[{clean_label}] --> {next_node}")
+        clean = re.sub(r'["\[\]{}|\\]', '', label.strip())
+        letter = idx_to_letter(i)
+
+        if i == 0:
+            prefix = "Start:"
+        elif i == len(labels) - 1:
+            prefix = "Finish:"
         else:
-            # Last node — no arrow
-            lines.append(f"    {current}[{clean_label}]")
+            prefix = f"Step {i}:"
+
+        wrapped = wrap_label(clean)
+        nodes.append((letter, f"{prefix}<br>{wrapped}"))
+
+    lines = ["flowchart LR"]
+    for i, (letter, label) in enumerate(nodes):
+        if i < len(nodes) - 1:
+            next_letter, next_label = nodes[i + 1]
+            lines.append(f"    {letter}[{label}] --> {next_letter}[{next_label}]")
 
     return "\n".join(lines)
 
