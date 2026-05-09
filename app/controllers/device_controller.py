@@ -419,7 +419,7 @@ class DeviceController:
         "plan": plan_steps,
         "total_steps": len(plan_steps),
         "status": "planned",
-        "video_url": None,
+        "video_url": plan.get("video_url"),
         "mermaid_chart": plan.get("mermaid_chart", ""),  # ← reads from LLM-generated chart
     }
     
