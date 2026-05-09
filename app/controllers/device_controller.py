@@ -76,6 +76,42 @@ class DeviceController:
             "device_id": device_id,
             "device_name": device_name
         }
+    
+    @staticmethod
+    def _clean_specs(components: list, capabilities: list) -> tuple:
+        """
+        Deduplicates by component type and title-cases for cleaner UI display.
+        Keeps only the first (most concise) entry per component type.
+        Does not modify any retrieval or storage logic.
+        """
+        def clean_components(items: list) -> list:
+            seen_types = {}
+            for item in items:
+                normalized = str(item).strip().title()
+                # Extract the component type — everything before the first "("
+                type_key = normalized.split("(")[0].strip().lower()
+                if not type_key:
+                    continue
+                # Keep the shortest entry per type (most concise)
+                if type_key not in seen_types:
+                    seen_types[type_key] = normalized
+                else:
+                    if len(normalized) < len(seen_types[type_key]):
+                        seen_types[type_key] = normalized
+            return list(seen_types.values())[:8]  # hard cap at 8
+
+        def clean_capabilities(items: list) -> list:
+            seen = set()
+            cleaned = []
+            for item in items:
+                normalized = str(item).strip().title()
+                key = normalized.lower()
+                if key and key not in seen:
+                    seen.add(key)
+                    cleaned.append(normalized)
+            return cleaned
+
+        return clean_components(components), clean_capabilities(capabilities)
     @staticmethod
     def device_specs(device_id: str, device_name: str):
         scraper_service = ScraperService()
@@ -92,17 +128,17 @@ class DeviceController:
         # -------------------------------
         if rag_service.exists(device_name):
             print("⚡ CACHE HIT")
-
             data = rag_service.query(device_name)
-
+            components, capabilities = DeviceController._clean_specs(
+                data.get("components", []),
+                data.get("capabilities", [])
+            )
             return {
                 "device_id": device_id,
-                "components": data.get("components", []),
-                "capabilities": data.get("capabilities", []),
+                "components": components,
+                "capabilities": capabilities,
                 "sources": ["cache"]
             }
-
-        print("🚀 CACHE MISS → FULL PIPELINE")
 
         # -------------------------------
         # SEARCH
@@ -183,6 +219,7 @@ class DeviceController:
         # -------------------------------
         # FINAL RESPONSE
         # -------------------------------
+        components, capabilities = DeviceController._clean_specs(components, capabilities)
         return {
             "device_id": device_id,
             "components": components,
@@ -359,6 +396,10 @@ class DeviceController:
             # Run planner + critic loop
         plan = run_plan_loop(project, device)
         plan_steps = plan.get("plan", [])
+        plan_steps = [
+            s if s.strip().endswith(".") else s.strip() + "."
+            for s in plan_steps
+        ]
 
             # Persist to SQLite
         project_id = create_project(device_id, device_name)
@@ -372,15 +413,15 @@ class DeviceController:
             )
 
         return {
-            "project_id": project_id,
-            "title": title,                    # from request payload directly
-            "goal": plan.get("goal"),
-            "plan": plan_steps,
-            "total_steps": len(plan_steps),
-            "status": "planned",
-            "video_url": "https://youtu.be/dQw4w9WgXcQ?si=YZkP9Dvkspsyu0c3",                 # placeholder
-            "mermaid_chart": "flowchart LR\n    A[Start:<br>Gather your old phone<br>and materials] --> B[Step 1:<br>Place the display panel<br>on a flat surface<br>near your plants]\n    B --> C[Step 2:<br>Take the main camera<br>module and securely plug<br>it into the slot]\n    C --> D[Finish:<br>Power on the logic<br>board to complete setup]"
-        }
+        "project_id": project_id,
+        "title": title,
+        "goal": plan.get("goal"),
+        "plan": plan_steps,
+        "total_steps": len(plan_steps),
+        "status": "planned",
+        "video_url": None,
+        "mermaid_chart": plan.get("mermaid_chart", ""),  # ← reads from LLM-generated chart
+    }
     
     @staticmethod
     def next_step(project_id: str):
