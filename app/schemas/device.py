@@ -44,3 +44,27 @@ class SaveRequest(BaseModel):
 
 class IdeasRequest(BaseModel):
     device_id: str  
+
+
+class CompatibilityRequest(BaseModel):
+    device_id: str
+    software_capabilities: List[str]
+
+
+class GeneratePWARequest(BaseModel):
+    device_id: str
+
+class RunProjectRequest(BaseModel):
+    device_id: str
+    device_name: str
+    title: str
+    difficulty: str
+    steps: dict  # {"1": "step one", "2": "step two", ...}
+
+class NextStepRequest(BaseModel):
+    project_id: str
+
+class SubmitStepRequest(BaseModel):
+    project_id: str
+    action: str          # "done" or "issue"
+    issue_detail: str | None = None

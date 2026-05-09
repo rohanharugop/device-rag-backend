@@ -8,6 +8,11 @@ from app.schemas.device import SaveRequest
 from app.controllers.device_controller import DeviceController
 from app.schemas.device import IdeasRequest
 from app.controllers.device_controller import DeviceController
+from app.schemas.device import CompatibilityRequest, GeneratePWARequest
+from app.schemas.device import NextStepRequest, SubmitStepRequest
+from app.schemas.device import RunProjectRequest
+
+
 
 router = APIRouter(prefix="/api")
 
@@ -56,3 +61,44 @@ def save_device(req: SaveRequest):
 @router.post("/generate-ideas")
 def generate_ideas(req: IdeasRequest):
     return DeviceController.generate_ideas(req.device_id)
+
+
+@router.post("/check-pwa-compatibility")
+def check_pwa_compatibility(payload: CompatibilityRequest):
+    return DeviceController.check_pwa_compatibility(
+        device_id=payload.device_id,
+        software_capabilities=payload.software_capabilities
+    )
+
+
+@router.post("/generate-pwa")
+def generate_pwa(payload: GeneratePWARequest):
+    return DeviceController.generate_pwa(
+        device_id=payload.device_id
+    )
+
+
+
+
+
+@router.post("/run-project")
+def run_project(req: RunProjectRequest):
+    return DeviceController.run_project(
+        device_id=req.device_id,
+        device_name=req.device_name,
+        title=req.title,
+        difficulty=req.difficulty,
+        steps=req.steps
+    )
+
+@router.post("/next-step")
+def next_step(req: NextStepRequest):
+    return DeviceController.next_step(req.project_id)
+
+@router.post("/submit-step")
+def submit_step(req: SubmitStepRequest):
+    return DeviceController.submit_step(
+        project_id=req.project_id,
+        action=req.action,
+        issue_detail=req.issue_detail
+    )

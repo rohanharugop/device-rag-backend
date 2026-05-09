@@ -10,6 +10,10 @@ from app.services.rag_service import RAGService
 from app.services.generator_service import GeneratorService
 from app.services.storage_service import StorageService
 from app.services.formatter_service import FormatterService
+from app.db.project_store import create_project, get_project
+from app.db.project_store import create_project, get_project, update_project, mark_complete
+from app.services.agent_service import run_plan_loop, execute_single_step, diagnose_issue
+
 import traceback
 
 
@@ -255,3 +259,214 @@ class DeviceController:
                 status_code=500,
                 detail=f"Idea generation failed: {str(e)}"
             )
+        
+    @staticmethod
+    def check_pwa_compatibility(device_id: str, software_capabilities: list):
+
+        from app.services.requirement_mapper_agent import RequirementMapperAgent
+        from app.services.rag_service import RAGService
+
+        if not session_manager.exists(device_id):
+            raise HTTPException(404, "Invalid device_id")
+
+        device_data = session_manager.get(device_id)
+        device_name = device_data.get("device_name")
+
+        if not device_name:
+            raise HTTPException(400, "Device not confirmed")
+
+        rag_service = RAGService()
+        context = rag_service.query(device_name)
+
+        components = context.get("components", [])
+        capabilities = context.get("capabilities", [])
+
+        # 🔥 Combine hardware signals safely
+        device_hw = components + capabilities
+        device_sw = software_capabilities or []
+
+        templates = ["security_cam", "dashboard", "media_server"]
+
+        agent = RequirementMapperAgent()
+        results = agent.evaluate_all(templates, device_hw, device_sw)
+
+        # 🔥 Save compatible templates in session (IMPORTANT)
+        valid_templates = [r["template"] for r in results if r["compatible"]]
+
+        session_manager.update(device_id, {
+            "valid_templates": valid_templates
+        })
+
+        return {
+            "device_id": device_id,
+            "results": results,
+            "valid_templates": valid_templates
+        }
+    
+    @staticmethod
+    def generate_pwa(device_id: str):
+
+        from app.services.pwa_generator_service import PWAGeneratorService
+
+        if not session_manager.exists(device_id):
+            raise HTTPException(404, "Invalid device_id")
+
+        device_data = session_manager.get(device_id)
+
+        device_name = device_data.get("device_name")
+        valid_templates = device_data.get("valid_templates", [])
+
+        if not device_name:
+            raise HTTPException(400, "Device not confirmed")
+
+        if not valid_templates:
+            return {
+                "message": "No compatible PWAs found. Please check device capabilities."
+            }
+
+        # 🔥 pick first valid template (safe default)
+        template = valid_templates[0]
+
+        generator = PWAGeneratorService()
+
+        config = {
+            "device_name": device_name,
+            "capabilities": device_data.get("capabilities", [])
+        }
+
+        zip_path = generator.generate(template, device_id, config)
+
+        return {
+            "pwa_type": template,
+            "download_url": zip_path
+        }
+    
+    @staticmethod
+    def run_project(device_id: str, device_name: str, title: str, difficulty: str, steps: dict):
+        if not session_manager.exists(device_id):
+            raise HTTPException(404, "Invalid device_id")
+
+        steps_list = [steps[k] for k in sorted(steps.keys(), key=lambda x: int(x))]
+
+        project = {
+                "title": title,
+                "difficulty": difficulty,
+                "device_id": device_id,
+                "device_name": device_name,
+            }
+        device = {"device_name": device_name}
+
+            # Run planner + critic loop
+        plan = run_plan_loop(project, device)
+        plan_steps = plan.get("plan", [])
+
+            # Persist to SQLite
+        project_id = create_project(device_id, device_name)
+        update_project(project_id,
+                plan=plan,
+                steps=plan_steps,
+                current_step=0,
+                history=[],
+                step_videos=[None] * len(plan_steps),
+                status="planned"
+            )
+
+        return {
+                "project_id": project_id,
+                "goal": plan.get("goal"),
+                "plan": plan_steps,
+                "total_steps": len(plan_steps),
+                "status": "planned"
+            }
+    
+    @staticmethod
+    def next_step(project_id: str):
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(404, "Project not found")
+        if project["status"] == "complete":
+            return {"status": "complete", "message": "Project already finished"}
+
+        i = project["current_step"]
+        steps = project["steps"]
+
+        if i >= len(steps):
+            mark_complete(project_id)
+            return {"status": "complete", "message": "All steps done"}
+
+        step = steps[i]
+        history = project["history"] or []
+        plan = project["plan"]
+        device = {"device_name": project["device_name"]}
+
+        result = execute_single_step(plan, device, history, step)
+
+        return {
+            "project_id": project_id,
+            "step_number": i + 1,
+            "total_steps": len(steps),
+            "step_title": step,
+            "instruction": result.get("instruction"),
+            "tips": result.get("tips", []),
+            "video_url": result.get("video_url"),
+            "status": "in_progress"
+        }
+
+
+    @staticmethod
+    def submit_step(project_id: str, action: str, issue_detail: str = None):
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(404, "Project not found")
+
+        i = project["current_step"]
+        steps = project["steps"]
+        step = steps[i]
+
+        if action == "done":
+            # Re-execute to get the instruction for history
+            # (or you can cache last result — see note below)
+            history = project["history"] or []
+            plan = project["plan"]
+            device = {"device_name": project["device_name"]}
+            result = execute_single_step(plan, device, history, step)
+
+            updated_history = history + [{
+                "step_number": i + 1,
+                "step": step,
+                "instruction": result.get("instruction", ""),
+            }]
+            new_step = i + 1
+
+            if new_step >= len(steps):
+                update_project(project_id,
+                    current_step=new_step,
+                    history=updated_history,
+                    status="complete"
+                )
+                return {"status": "complete", "message": "Project complete!"}
+
+            update_project(project_id,
+                current_step=new_step,
+                history=updated_history
+            )
+            return {"status": "advanced", "next_step": new_step + 1}
+
+        elif action == "issue":
+            if not issue_detail:
+                raise HTTPException(400, "issue_detail required when action is 'issue'")
+            plan = project["plan"]
+            diagnosis = diagnose_issue(
+                step=step,
+                device_name=project["device_name"],
+                plan_goal=plan.get("goal", ""),
+                issue_detail=issue_detail
+            )
+            return {
+                "status": "issue_diagnosed",
+                "step_number": i + 1,
+                "diagnosis": diagnosis.get("diagnosis"),
+                "solutions": diagnosis.get("solutions", [])
+            }
+
+        raise HTTPException(400, "action must be 'done' or 'issue'")

@@ -1,0 +1,4 @@
+{
+  "device_name": "Test Device",
+  "capabilities": ["camera", "wifi"]
+}

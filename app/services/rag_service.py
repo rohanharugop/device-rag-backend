@@ -275,55 +275,30 @@ class RAGService:
         print("🧠 RAW METADATA:", metadata)
 
         # -------------------------------
-        # ✅ NEW FORMAT (CORRECT)
+        # ✅ NEW FORMAT (v2 WITH STANDARDIZED CAPS)
         # -------------------------------
-        if "components" in metadata:
+        if "capabilities_standardized" in metadata:
             try:
                 return {
                     "components": json.loads(metadata.get("components", "[]")),
-                    "capabilities": json.loads(metadata.get("capabilities", "[]"))
+                    "capabilities": json.loads(metadata.get("capabilities_standardized", "[]"))
                 }
-            except:
-                print("❌ Failed parsing new format")
+            except Exception as e:
+                print("❌ Failed parsing v2 format:", str(e))
                 return {}
 
         # -------------------------------
-        # ⚠️ OLD FORMAT (FALLBACK SUPPORT)
+        # ✅ NEW FORMAT (OLD v1 CLEAN FORMAT)
         # -------------------------------
-        print("⚠️ Detected OLD metadata format → attempting recovery")
+        if "components" in metadata:
+            try:
+                components = json.loads(metadata.get("components", "[]"))
+                raw_caps = json.loads(metadata.get("capabilities", "[]"))
 
-        components = []
-        capabilities = []
-
-        try:
-            raw_components = metadata.get("data_components", "")
-            raw_capabilities = metadata.get("data_capabilities", "")
-
-            # extract JSON objects
-            comp_matches = re.findall(r'\{.*?\}', raw_components)
-            cap_matches = re.findall(r'\{.*?\}', raw_capabilities)
-
-            for item in comp_matches:
-                parsed = json.loads(item)
-                components.append(
-                    ", ".join(f"{k}: {v}" for k, v in parsed.items() if v)
-                )
-
-            for item in cap_matches:
-                parsed = json.loads(item)
-                capabilities.append(
-                    ", ".join(f"{k}: {v}" for k, v in parsed.items() if v)
-                )
-
-        except Exception as e:
-            print("❌ Old format recovery failed:", str(e))
-
-        return {
-            "components": components[:5],
-            "capabilities": capabilities[:5]
-        }
-
-
-# -------------------------------
-# SINGLE INSTANCE
-# -------------------------------
+                return {
+                    "components": components,
+                    "capabilities": raw_caps   # 🔥 DO NOT MAP
+                }
+            except Exception as e:
+                print("❌ Failed parsing v1 format:", str(e))
+                return {}

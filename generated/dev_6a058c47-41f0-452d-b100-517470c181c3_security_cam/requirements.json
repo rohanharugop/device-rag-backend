@@ -1,0 +1,10 @@
+{
+  "hardware": [
+    "camera",
+    "display"
+  ],
+  "software": [
+    "browser_camera_access",
+    "https_support"
+  ]
+}

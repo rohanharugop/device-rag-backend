@@ -1,0 +1,9 @@
+{
+  "hardware": [
+    "storage",
+    "display"
+  ],
+  "software": [
+    "file_api_support"
+  ]
+}

@@ -1,17 +1,24 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-import os
-# print("OPENAI KEY:", os.getenv("OPENAI_API_KEY"))
-
-
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.routes.device import router as device_router
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()          # startup
+    yield
+    # shutdown (nothing to clean up for SQLite)
+
 
 app = FastAPI(
     title="Device RAG API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 origins = [
@@ -21,15 +28,13 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # or ["*"] for quick testing
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ THIS LINE WAS MISSING
 app.include_router(device_router)
-
 
 @app.get("/")
 def health_check():
