@@ -23,12 +23,16 @@ lxml==5.2.2
 python-dotenv==1.0.1
 
 # -------------------------------
-# AI (OpenAI ONLY)
+# AI (OpenAI + Tavily)
 # -------------------------------
 openai==1.40.6
 tavily-python==0.3.9
+
+# -------------------------------
+# AGENTIC FRAMEWORK
+# -------------------------------
 langgraph==0.2.28
-langchain-core==0.2.38
+langchain-core==0.2.39
 
 # -------------------------------
 # VECTOR DB (PINECONE)
