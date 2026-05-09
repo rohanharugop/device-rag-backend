@@ -372,12 +372,15 @@ class DeviceController:
             )
 
         return {
-                "project_id": project_id,
-                "goal": plan.get("goal"),
-                "plan": plan_steps,
-                "total_steps": len(plan_steps),
-                "status": "planned"
-            }
+            "project_id": project_id,
+            "title": title,                    # from request payload directly
+            "goal": plan.get("goal"),
+            "plan": plan_steps,
+            "total_steps": len(plan_steps),
+            "status": "planned",
+            "video_url": "https://youtu.be/dQw4w9WgXcQ?si=YZkP9Dvkspsyu0c3",                 # placeholder
+            "mermaid_chart": "flowchart LR\n    A[Start:<br>Gather your old phone<br>and materials] --> B[Step 1:<br>Place the display panel<br>on a flat surface<br>near your plants]\n    B --> C[Step 2:<br>Take the main camera<br>module and securely plug<br>it into the slot]\n    C --> D[Finish:<br>Power on the logic<br>board to complete setup]"
+        }
     
     @staticmethod
     def next_step(project_id: str):
