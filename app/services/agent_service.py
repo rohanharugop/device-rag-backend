@@ -682,29 +682,28 @@ Return ONLY the JSON array. Nothing else."""
 
 def _build_mermaid(labels: list) -> str:
     """
-    Injects labels into a fixed Mermaid flowchart template.
-    This function never calls the LLM — output is always valid Mermaid.
+    Builds a Mermaid flowchart matching the exact format expected by the frontend.
+    Uses simple lettered nodes (A, B, C...) with bracket labels, no quotes.
     """
     if not labels:
-        return "flowchart LR\n    A([Start]) --> B([Complete])"
+        return "flowchart LR\n    A[Start] --> B[Complete]"
+
+    # Map index to letter: 0→A, 1→B, 2→C, etc.
+    def idx_to_letter(i):
+        return chr(65 + i)  # A=65 in ASCII
 
     lines = ["flowchart LR"]
 
-    # Start node
-    lines.append('    START([🚀 Start]) --> N0')
-
-    # Step nodes
     for i, label in enumerate(labels):
-        node_id = f"N{i}"
-        next_id = f"N{i + 1}" if i < len(labels) - 1 else "END"
-        lines.append(f'    {node_id}["{label}"] --> {next_id}')
-
-    # End node
-    lines.append('    END([✅ Complete])')
-
-    # Styles
-    lines.append('    style START fill:#4CAF50,color:#fff')
-    lines.append('    style END fill:#4CAF50,color:#fff')
+        current = idx_to_letter(i)
+        next_node = idx_to_letter(i + 1)
+        # Clean label — no quotes, no special chars that cause backslash escaping
+        clean_label = re.sub(r'["\[\]{}|\\]', '', label.strip())
+        if i < len(labels) - 1:
+            lines.append(f"    {current}[{clean_label}] --> {next_node}")
+        else:
+            # Last node — no arrow
+            lines.append(f"    {current}[{clean_label}]")
 
     return "\n".join(lines)
 
